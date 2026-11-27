@@ -33,6 +33,7 @@ BRANCH = "main"
 BOARDS = {
     # thư mục ảnh : (tên board trên Pinterest, link đích)
     "love": ("Love, Slowly", "https://www.amazon.com/dp/B0HSJFWBPC"),
+    "bloom": ("A Road in Bloom", "https://www.amazon.com/dp/B0HQW9N3FN"),
 }
 
 CLAUDE_MODEL = "claude-sonnet-5-5"     # có thể đổi sang "claude-haiku-5-5" cho rẻ hơn
@@ -44,7 +45,7 @@ START_DATE = None                      # None = bắt đầu từ ngày mai, ho�
 POST_TIMES_UTC = ["13:00", "14:30", "16:00", "17:30", "19:00",
                   "20:30", "22:00", "23:30", "01:00", "02:30"]
 JITTER_MINUTES = 20                    # lệch ngẫu nhiên +/- vài phút cho tự nhiên
-MAX_ROWS_PER_CSV = 200                 # giới hạn của Pinterest
+MAX_ROWS_PER_CSV = 10                  # Pinterest chỉ cho tối đa 10 pin hẹn giờ cùng lúc -> 1 file/ngày
 PUSH_BATCH = 25                        # số ảnh mỗi lần git push
 # ===================================================================
 
@@ -292,17 +293,18 @@ def cmd_csv():
 
     fields = ["Title", "Media URL", "Pinterest board", "Thumbnail",
               "Description", "Link", "Publish date", "Keywords"]
-    stamp = datetime.now().strftime("%Y%m%d_%H%M")
     parts = [rows[i:i + MAX_ROWS_PER_CSV] for i in range(0, len(rows), MAX_ROWS_PER_CSV)]
     for n, part in enumerate(parts, 1):
-        f = CSV_DIR / f"pins_{stamp}_part{n}.csv"
+        part.sort(key=lambda r: r["Publish date"])
+        f = CSV_DIR / f"day{n:02d}_upload_{part[0]['Publish date'][:10]}.csv"
         with f.open("w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=fields)
             w.writeheader()
             w.writerows(part)
         print(f"  {f.name}: {len(part)} pin, {part[0]['Publish date'][:10]} → "
               f"{part[-1]['Publish date'][:10]}")
-    print(f"✅ Xong. Upload các file trong {CSV_DIR}/ lên Pinterest (Settings > Import content).")
+    print(f"✅ Xong. Mỗi ngày upload 1 file theo thứ tự (dayNN_upload_<ngày>.csv), "
+          "trước giờ đăng đầu tiên trong file (khoảng 19h giờ Việt Nam).")
 
 
 if __name__ == "__main__":
